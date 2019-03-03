@@ -1,0 +1,47 @@
+version: '3'
+
+# TODO 
+# - push to docker hub via wercker and use here
+
+services:
+  goch:
+    build: cmd/goch
+    ports:
+      - "80:8080"
+    depends_on:
+      - redis
+      - nats_stream
+    links:
+      - nats_stream
+      - redis
+    # restart: always 
+    entrypoint:
+      - /goch
+      - -admin=admin
+      - -password=admin
+    env_file:
+    - .env
+  nats_stream:
+    image: nats-streaming
+    # restart: always 
+    ports:
+      - "8222:8222"
+    volumes:
+      - ./nats-data:/data
+    entrypoint:
+      - /nats-streaming-server 
+      - --http_port
+      - '8222'
+      - -store 
+      - file 
+      - -dir 
+      - data 
+      - --max_channels
+      - '0'
+  redis:
+    image: redis:alpine 
+    # restart: always 
+    command: ["redis-server", "--appendonly", "yes"]
+    working_dir: /db
+    volumes:
+      - ./redis-data:/db
