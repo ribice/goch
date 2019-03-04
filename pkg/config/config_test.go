@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"testing"
 
@@ -10,6 +11,23 @@ import (
 	"github.com/ribice/goch/pkg/config"
 
 	"github.com/stretchr/testify/assert"
+)
+
+var (
+	lims = map[goch.Limit][2]int{
+		goch.DisplayNameLimit: [2]int{3, 128},
+		goch.UIDLimit:         [2]int{20, 20},
+		goch.SecretLimit:      [2]int{20, 50},
+		goch.ChanLimit:        [2]int{10, 20},
+		goch.ChanSecretLimit:  [2]int{20, 20},
+	}
+	limErrs = map[goch.Limit]error{
+		goch.DisplayNameLimit: errors.New("displayName must be between 3 and 128 characters long"),
+		goch.UIDLimit:         errors.New("uid must be between 20 and 20 characters long"),
+		goch.SecretLimit:      errors.New("secret must be between 20 and 50 characters long"),
+		goch.ChanLimit:        errors.New("channel must be between 10 and 20 characters long"),
+		goch.ChanSecretLimit:  errors.New("channelSecret must be between 20 and 20 characters long"),
+	}
 )
 
 func TestLoad(t *testing.T) {
@@ -33,6 +51,11 @@ func TestLoad(t *testing.T) {
 		{
 			name:    "Fail on wrong file format",
 			path:    "testdata/invalid.yaml",
+			wantErr: true,
+		},
+		{
+			name:    "Fail on incorrect number of limits",
+			path:    "testdata/limits.yaml",
 			wantErr: true,
 		},
 		{
@@ -69,20 +92,8 @@ func TestLoad(t *testing.T) {
 					Username: "admin",
 					Password: "password",
 				},
-				Limits: map[goch.Limit][2]int{
-					goch.DisplayNameLimit: [2]int{3, 128},
-					goch.UIDLimit:         [2]int{20, 20},
-					goch.SecretLimit:      [2]int{20, 50},
-					goch.ChanLimit:        [2]int{10, 20},
-					goch.ChanSecretLimit:  [2]int{20, 20},
-				},
-				LimitErrs: map[goch.Limit]error{
-					goch.DisplayNameLimit: errors.New("displayName must be between 3 and 128 characters long"),
-					goch.UIDLimit:         errors.New("uid must be between 20 and 20 characters long"),
-					goch.SecretLimit:      errors.New("secret must be between 20 and 50 characters long"),
-					goch.ChanLimit:        errors.New("channel must be between 10 and 20 characters long"),
-					goch.ChanSecretLimit:  errors.New("channelSecret must be between 20 and 20 characters long"),
-				},
+				Limits:    lims,
+				LimitErrs: limErrs,
 			},
 			envData: &data{
 				user:      "admin",
@@ -99,6 +110,7 @@ func TestLoad(t *testing.T) {
 				os.Setenv("ADMIN_PASSWORD", tt.envData.pass)
 			}
 			cfg, err := config.Load(tt.path)
+			fmt.Println(err)
 			assert.Equal(t, tt.wantData, cfg)
 			assert.Equal(t, tt.wantErr, err != nil)
 		})

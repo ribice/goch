@@ -55,6 +55,10 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("unable to decode config into struct, %v", err)
 	}
 
+	if len(cfg.Limits) != int(goch.ChanSecretLimit) {
+		return nil, fmt.Errorf("not all limits were loaded. needed %v, actual %v", goch.ChanSecretLimit, len(cfg.Limits))
+	}
+
 	if cfg.Redis != nil {
 		cfg.Redis.Password = os.Getenv("REDIS_PASSWORD")
 	}
