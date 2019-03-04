@@ -2,8 +2,8 @@ package main
 
 import (
 	"log"
-	"os"
-	"strconv"
+
+	"github.com/ribice/goch/pkg/config"
 
 	"github.com/ribice/goch/pkg/nats"
 	"github.com/ribice/goch/pkg/redis"
@@ -12,16 +12,16 @@ import (
 )
 
 func main() {
-	nc, err := nats.New(mustGetEnv("NATS_CLUSTER_ID"), mustGetEnv("NATS_CLIENT_ID"), mustGetEnv("NATS_URL"))
-
-	redisPort, err := strconv.Atoi(mustGetEnv("REDIS_PORT"))
+	cfg, err := config.Load("./.d")
 	checkErr(err)
-	rc, err := redis.New(mustGetEnv("REDIS_ADDR"), os.Getenv("REDIS_PASS"), redisPort)
+	nc, err := nats.New(cfg.NATS.ClusterID, cfg.NATS.ClientID, cfg.NATS.URL)
+	checkErr(err)
+	rc, err := redis.New(cfg.Redis.Address, cfg.Redis.Password, cfg.Redis.Port)
 	checkErr(err)
 	_, _ = nc, rc
 
-	srv, mux := msv.New(8080)
-	aMW := authmw.New(mustGetEnv("ADMIN_USER"), mustGetEnv("ADMIN_PASS"))
+	srv, mux := msv.New(cfg.Server.Port)
+	aMW := authmw.New(cfg.Admin.Username, cfg.Admin.Password)
 	mux.Use(aMW.WithBasic)
 
 	srv.Start()
@@ -31,13 +31,4 @@ func checkErr(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-func mustGetEnv(key string) string {
-	v, ok := os.LookupEnv(key)
-	if !ok {
-		log.Fatalf("env variable %s required but not found", key)
-	}
-	return v
-
 }

@@ -5,7 +5,7 @@ type Limit int
 
 // Limit constants
 const (
-	DisplayNameLimit Limit = iota
+	DisplayNameLimit Limit = iota + 1
 	UIDLimit
 	SecretLimit
 	ChanLimit
