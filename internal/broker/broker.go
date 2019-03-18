@@ -11,7 +11,7 @@ import (
 
 // New creates new chat broker instance
 func New(mq MQ, store ChatStore, ig Ingester) *Broker {
-	return &Broker{mq: mq, ig: ig, store: store}
+	return &Broker{mq: mq, store: store, ig: ig}
 }
 
 // Broker represents chat broker

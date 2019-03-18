@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"regexp"
 
+	"github.com/gorilla/mux"
+
 	"github.com/ribice/goch"
 
 	"github.com/gorilla/websocket"
@@ -18,9 +20,9 @@ var (
 )
 
 // NewAPI creates new websocket api
-func NewAPI(broker *broker.Broker, store ChatStore, lim Limiter) *API {
+func NewAPI(m *mux.Router, br *broker.Broker, store ChatStore, lim Limiter) *API {
 	api := API{
-		broker: broker,
+		broker: br,
 		store:  store,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
@@ -30,7 +32,7 @@ func NewAPI(broker *broker.Broker, store ChatStore, lim Limiter) *API {
 	}
 	alfaRgx = regexp.MustCompile("^[a-zA-Z0-9_]*$")
 
-	// api.RegisterHandler("GET", "/connect", api.connect)
+	m.HandleFunc("/connect", api.connect).Methods("GET")
 
 	return &api
 }

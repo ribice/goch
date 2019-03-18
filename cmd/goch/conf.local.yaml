@@ -1,0 +1,18 @@
+server:
+  port: 8080
+
+redis:
+  address: redis
+  port: 6379
+
+nats:
+  cluster_id: test-cluster
+  client_id: test-client
+  url: nats://nats_stream:4222
+
+limits:
+ 1: [3,128]
+ 2: [20,20]
+ 3: [20,50]
+ 4: [10,20]
+ 5: [20,20]

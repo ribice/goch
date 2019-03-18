@@ -1,7 +1,15 @@
 package main
 
 import (
+	"flag"
 	"log"
+
+	"github.com/ribice/goch/internal/chat"
+
+	"github.com/ribice/goch/internal/agent"
+
+	"github.com/ribice/goch/internal/broker"
+	"github.com/ribice/goch/internal/ingest"
 
 	"github.com/ribice/goch/pkg/config"
 
@@ -12,17 +20,20 @@ import (
 )
 
 func main() {
-	cfg, err := config.Load("./.d")
+	cfgPath := flag.String("config", "./conf.yaml", "Path to config file")
+	flag.Parse()
+	cfg, err := config.Load(*cfgPath)
 	checkErr(err)
-	nc, err := nats.New(cfg.NATS.ClusterID, cfg.NATS.ClientID, cfg.NATS.URL)
+	mq, err := nats.New(cfg.NATS.ClusterID, cfg.NATS.ClientID, cfg.NATS.URL)
 	checkErr(err)
-	rc, err := redis.New(cfg.Redis.Address, cfg.Redis.Password, cfg.Redis.Port)
+	store, err := redis.New(cfg.Redis.Address, cfg.Redis.Password, cfg.Redis.Port)
 	checkErr(err)
-	_, _ = nc, rc
 
 	srv, mux := msv.New(cfg.Server.Port)
 	aMW := authmw.New(cfg.Admin.Username, cfg.Admin.Password)
-	mux.Use(aMW.WithBasic)
+
+	agent.NewAPI(mux, broker.New(mq, store, ingest.New(mq, store)), store, cfg)
+	chat.New(mux, store, cfg, aMW.WithBasic)
 
 	srv.Start()
 }

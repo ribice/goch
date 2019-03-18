@@ -15,10 +15,12 @@ services:
       - nats_stream
       - redis
     # restart: always 
+    volumes:
+      - ./cmd/goch:/opt/conf
     entrypoint:
       - /goch
-      - -admin=admin
-      - -password=admin
+      - -config
+      - /opt/conf/conf.local.yaml
     env_file:
     - .env
   nats_stream:

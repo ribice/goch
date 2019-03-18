@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"regexp"
 
+	"github.com/gorilla/mux"
+
 	"github.com/ribice/goch"
 
 	"github.com/ribice/msv/bind"
@@ -25,8 +27,8 @@ type Limiter interface {
 	ExceedsAny(map[string]goch.Limit) error
 }
 
-// NewAPI creates new websocket api
-func NewAPI(store Store, l Limiter) *API {
+// New creates new websocket api
+func New(m *mux.Router, store Store, l Limiter, authMW mux.MiddlewareFunc) *API {
 	api := API{
 		store: store,
 	}
@@ -35,24 +37,16 @@ func NewAPI(store Store, l Limiter) *API {
 	alfaRgx = regexp.MustCompile("^[a-zA-Z0-9_]*$")
 	mailRgx = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
-	// api.RegisterEndpoint(
-	// 	"POST",
-	// 	"/admin/create_channel",
-	// 	api.createChannel,
-	// 	WithHTTPBasicAuth(admin, password),
-	// )
+	sr := m.PathPrefix("/channels").Subrouter()
 
-	// api.RegisterEndpoint(
-	// 	"POST",
-	// 	"/admin/unread_count",
-	// 	api.unreadCount,
-	// 	WithHTTPBasicAuth(admin, password),
-	// )
+	sr.HandleFunc("", api.listChannels).Methods("GET")
+	sr.HandleFunc("/register", api.registerNick).Methods("POST")
+	sr.HandleFunc("/{name}", api.listMembers).Methods("GET").Queries("secret", "{[a-zA-Z0-9_]*$}")
 
-	// api.RegisterHandler("GET", "/list_channels", api.listChannels)
-	// api.RegisterEndpoint("POST", "/register_nick", api.registerNick)
-	// api.RegisterEndpoint("POST", "/channel_members", api.channelMembers)
-
+	ar := m.PathPrefix("/admin").Subrouter()
+	ar.Use(authMW)
+	ar.HandleFunc("", api.createChannel).Methods("POST")
+	ar.HandleFunc("/{name}/user/{uid}", api.unreadCount).Methods("GET")
 	return &api
 }
 
@@ -69,23 +63,20 @@ type Store interface {
 	GetUnreadCount(string, string) uint64
 }
 
-type createChanReq struct {
+type createReq struct {
 	Name      string `json:"name"`
 	IsPrivate bool   `json:"is_private"`
 }
 
-func (cr *createChanReq) Bind() error {
-	if err := exceeds(cr.Name, goch.ChanLimit); err != nil {
-		return err
+func (cr *createReq) Bind() error {
+	if !alfaRgx.MatchString(cr.Name) {
+		return errors.New("name must contain only alphanumeric and underscores")
 	}
-	if match, err := regexp.MatchString("^[a-zA-Z0-9_]*$", cr.Name); !match || err != nil {
-		return fmt.Errorf("name must contain only alphanumeric and underscores")
-	}
-	return nil
+	return exceeds(cr.Name, goch.ChanLimit)
 }
 
 func (api *API) createChannel(w http.ResponseWriter, r *http.Request) {
-	var req createChanReq
+	var req createReq
 	if err := bind.JSON(w, r, &req); err != nil {
 		return
 	}
@@ -103,7 +94,7 @@ type registerReq struct {
 	Email         string `json:"email"`
 	Secret        string `json:"secret"`
 	Channel       string `json:"channel"`
-	ChannelSecret string `json:"channel_secret"` // Tennant
+	ChannelSecret string `json:"channel_secret"`
 }
 
 type registerResp struct {
@@ -163,61 +154,50 @@ func (api *API) registerNick(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	render.JSON(w, r, secret)
+	render.JSON(w, r, registerResp{secret})
 
-}
-
-type unreadCountReq struct {
-	Channel string `json:"channel"`
-	UID     string `json:"uid"`
 }
 
 type unreadCountResp struct {
 	Count uint64 `json:"count"`
 }
 
-func (r *unreadCountReq) Bind() error {
-	return exceedsAny(map[string]goch.Limit{
-		r.UID:     goch.UIDLimit,
-		r.Channel: goch.ChanLimit,
-	})
-}
-
 func (api *API) unreadCount(w http.ResponseWriter, r *http.Request) {
-	var req unreadCountReq
-	if err := bind.JSON(w, r, &req); err != nil {
+	vars := mux.Vars(r)
+	uid, chanName := vars["uid"], vars["name"]
+	if err := exceedsAny(map[string]goch.Limit{
+		chanName: goch.UIDLimit,
+		uid:      goch.ChanLimit,
+	}); err != nil {
+		http.Error(w, err.Error(), 400)
 		return
 	}
-	uc := api.store.GetUnreadCount(req.UID, req.Channel)
+
+	uc := api.store.GetUnreadCount(uid, chanName)
 	render.JSON(w, r, &unreadCountResp{uc})
 
 }
 
-type channelMembersReq struct {
-	Channel       string `json:"channel"`
-	ChannelSecret string `json:"channel_secret"`
-}
+func (api *API) listMembers(w http.ResponseWriter, r *http.Request) {
 
-func (r *channelMembersReq) Bind() error {
-	return exceedsAny(map[string]goch.Limit{
-		r.Channel:       goch.ChanLimit,
-		r.ChannelSecret: goch.ChanSecretLimit,
-	})
-}
+	chanName := r.URL.Query().Get("name")
+	secret := mux.Vars(r)["secret"]
 
-func (api *API) channelMembers(w http.ResponseWriter, r *http.Request) {
-	var req channelMembersReq
-	if err := bind.JSON(w, r, &req); err != nil {
+	if err := exceedsAny(map[string]goch.Limit{
+		chanName: goch.ChanLimit,
+		secret:   goch.ChanSecretLimit,
+	}); err != nil {
+		http.Error(w, err.Error(), 400)
 		return
 	}
 
-	ch, err := api.store.Get(req.Channel)
+	ch, err := api.store.Get(chanName)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("invalid secret or unexisting channel: %v", err), 500)
 		return
 	}
 
-	if ch.Secret != req.ChannelSecret {
+	if ch.Secret != secret {
 		http.Error(w, fmt.Sprintf("invalid secret or unexisting channel: %v", err), 500)
 		return
 	}
