@@ -29,7 +29,7 @@ type Chat struct {
 	Members map[string]*User `json:"members"`
 }
 
-// Chat related errors
+// Chat errors
 var (
 	errAlreadyRegistered = errors.New("chat: uid already registred in this chat")
 	errNotRegistered     = errors.New("chat: uid not registered")
@@ -38,12 +38,11 @@ var (
 
 // Register registers user with a chat and returns secret which should
 // be stored on the client side, and used for subsequent join requests
-func (c *Chat) Register(u *User, secret string) (string, error) {
+func (c *Chat) Register(u *User) (string, error) {
 	if _, ok := c.Members[u.UID]; ok {
 		return "", errAlreadyRegistered
 	}
-	u.Secret = secret
-	if secret == "" {
+	if u.Secret == "" {
 		u.Secret = newSecret()
 	}
 	c.Members[u.UID] = u

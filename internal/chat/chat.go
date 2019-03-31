@@ -7,9 +7,7 @@ import (
 	"regexp"
 
 	"github.com/gorilla/mux"
-
 	"github.com/ribice/goch"
-
 	"github.com/ribice/msv/bind"
 	"github.com/ribice/msv/render"
 )
@@ -38,7 +36,7 @@ func New(m *mux.Router, store Store, l Limiter, authMW mux.MiddlewareFunc) *API 
 	mailRgx = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 	sr := m.PathPrefix("/channels").Subrouter()
-	sr.HandleFunc("/register", api.registerNick).Methods("POST")
+	sr.HandleFunc("/register", api.register).Methods("POST")
 	sr.HandleFunc("/{name}", api.listMembers).Methods("GET").Queries("secret", "{[a-zA-Z0-9_]*$}")
 
 	ar := m.PathPrefix("/admin/channels").Subrouter()
@@ -120,18 +118,13 @@ func (r *registerReq) Bind() error {
 	})
 }
 
-func (api *API) registerNick(w http.ResponseWriter, r *http.Request) {
+func (api *API) register(w http.ResponseWriter, r *http.Request) {
 	var req registerReq
 	if err := bind.JSON(w, r, &req); err != nil {
 		return
 	}
 	ch, err := api.store.Get(req.Channel)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("invalid secret or unexisting channel: %v", err), 500)
-		return
-	}
-
-	if ch.Secret != req.ChannelSecret {
+	if err != nil || ch.Secret != req.ChannelSecret {
 		http.Error(w, fmt.Sprintf("invalid secret or unexisting channel: %v", err), 500)
 		return
 	}
@@ -140,7 +133,8 @@ func (api *API) registerNick(w http.ResponseWriter, r *http.Request) {
 		UID:         req.UID,
 		DisplayName: req.DisplayName,
 		Email:       req.Email,
-	}, req.Secret)
+		Secret:      req.Secret,
+	})
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("error registering to channel: %v", err), 500)

@@ -71,11 +71,10 @@ func (api *API) connect(w http.ResponseWriter, r *http.Request) {
 }
 
 type initConReq struct {
-	Channel     string  `json:"channel"`
-	UID         string  `json:"uid"`
-	Secret      string  `json:"secret"` // User secret
-	LastSeq     *uint64 `json:"last_seq"`
-	DisplayName string  `json:"display_name"`
+	Channel string  `json:"channel"`
+	UID     string  `json:"uid"`
+	Secret  string  `json:"secret"` // User secret
+	LastSeq *uint64 `json:"last_seq"`
 }
 
 func (api *API) bindReq(r *initConReq) error {
@@ -87,10 +86,9 @@ func (api *API) bindReq(r *initConReq) error {
 	}
 
 	return api.rlim.ExceedsAny(map[string]goch.Limit{
-		r.UID:         goch.UIDLimit,
-		r.Secret:      goch.SecretLimit,
-		r.Channel:     goch.ChanLimit,
-		r.DisplayName: goch.DisplayNameLimit,
+		r.UID:     goch.UIDLimit,
+		r.Secret:  goch.SecretLimit,
+		r.Channel: goch.ChanLimit,
 	})
 }
 

@@ -22,12 +22,12 @@ func New(mb MessageBroker, store ChatStore) *Agent {
 
 // Agent represents chat connection agent which handles end to end comm client - broker
 type Agent struct {
-	chat         *goch.Chat
-	connectedUID string
-	displayName  string
-	done         chan struct{}
-	closeSub     func()
-	closed       bool
+	chat        *goch.Chat
+	uid         string
+	displayName string
+	done        chan struct{}
+	closeSub    func()
+	closed      bool
 
 	conn *websocket.Conn
 	mb   MessageBroker
@@ -85,20 +85,19 @@ func (a *Agent) HandleConn(conn *websocket.Conn, req *initConReq) {
 		return
 	}
 
-	if ct == nil {
-		writeFatal(a.conn, "agent: this chat does not exist")
-		return
-	}
+	// if ct == nil {
+	// 	writeFatal(a.conn, "agent: this chat does not exist")
+	// 	return
+	// }
 
 	user, err := ct.Join(req.UID, req.Secret)
 	if err != nil {
-		writeFatal(a.conn, err.Error())
+		writeFatal(a.conn, fmt.Sprintf("agent: unable to joni chat: %v", err))
 		return
 	}
 
 	a.chat = ct
-	a.connectedUID = user.UID
-	a.displayName = req.DisplayName
+	a.setUser(user)
 
 	mc := make(chan *goch.Message)
 	{
@@ -134,7 +133,7 @@ func (a *Agent) pushRecent() (uint64, error) {
 		return 0, nil
 	}
 
-	a.store.UpdateLastClientSeq(a.connectedUID, a.chat.Name, msgs[len(msgs)-1].Seq)
+	a.store.UpdateLastClientSeq(a.uid, a.chat.Name, msgs[len(msgs)-1].Seq)
 
 	return seq, a.conn.WriteJSON(msg{
 		Type: historyMsg,
@@ -171,7 +170,7 @@ func (a *Agent) loop(mc chan *goch.Message) {
 					Data: m,
 				})
 
-				a.store.UpdateLastClientSeq(a.connectedUID, a.chat.Name, m.Seq)
+				a.store.UpdateLastClientSeq(a.uid, a.chat.Name, m.Seq)
 			case <-a.done:
 				return
 			}
@@ -218,7 +217,7 @@ func (a *Agent) handleChatMsg(raw json.RawMessage) {
 		return
 	}
 
-	msg.FromUID = a.connectedUID
+	msg.FromUID = a.uid
 	msg.FromName = a.displayName
 	msg.Time = time.Now().UnixNano()
 
@@ -293,4 +292,9 @@ func writeErr(conn *websocket.Conn, err string) {
 func writeFatal(conn *websocket.Conn, err string) {
 	conn.WriteJSON(msg{Error: err, Type: errorMsg})
 	conn.Close()
+}
+
+func (a *Agent) setUser(u *goch.User) {
+	a.uid = u.UID
+	a.displayName = u.DisplayName
 }
