@@ -38,13 +38,12 @@ func New(m *mux.Router, store Store, l Limiter, authMW mux.MiddlewareFunc) *API 
 	mailRgx = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 	sr := m.PathPrefix("/channels").Subrouter()
-
-	sr.HandleFunc("", api.listChannels).Methods("GET")
 	sr.HandleFunc("/register", api.registerNick).Methods("POST")
 	sr.HandleFunc("/{name}", api.listMembers).Methods("GET").Queries("secret", "{[a-zA-Z0-9_]*$}")
 
-	ar := m.PathPrefix("/admin").Subrouter()
+	ar := m.PathPrefix("/admin/channels").Subrouter()
 	ar.Use(authMW)
+	ar.HandleFunc("", api.listChannels).Methods("GET")
 	ar.HandleFunc("", api.createChannel).Methods("POST")
 	ar.HandleFunc("/{name}/user/{uid}", api.unreadCount).Methods("GET")
 	return &api
