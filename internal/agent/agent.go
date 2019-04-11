@@ -92,7 +92,7 @@ func (a *Agent) HandleConn(conn *websocket.Conn, req *initConReq) {
 
 	user, err := ct.Join(req.UID, req.Secret)
 	if err != nil {
-		writeFatal(a.conn, fmt.Sprintf("agent: unable to joni chat: %v", err))
+		writeFatal(a.conn, fmt.Sprintf("agent: unable to join chat: %v", err))
 		return
 	}
 
@@ -198,8 +198,14 @@ func (a *Agent) handleClientMsg(r io.Reader) {
 	}
 }
 
+type message struct {
+	Meta map[string]string `json:"meta"`
+	Seq  uint64            `json:"seq"`
+	Text string            `json:"text"`
+}
+
 func (a *Agent) handleChatMsg(raw json.RawMessage) {
-	var msg goch.Message
+	var msg message
 
 	err := json.Unmarshal(raw, &msg)
 	if err != nil {
@@ -217,11 +223,14 @@ func (a *Agent) handleChatMsg(raw json.RawMessage) {
 		return
 	}
 
-	msg.FromUID = a.uid
-	msg.FromName = a.displayName
-	msg.Time = time.Now().UnixNano()
-
-	err = a.mb.Send(a.chat.Name, &msg)
+	err = a.mb.Send(a.chat.Name, &goch.Message{
+		Meta:     msg.Meta,
+		Text:     msg.Text,
+		Seq:      msg.Seq,
+		FromName: a.displayName,
+		FromUID:  a.uid,
+		Time:     time.Now().UnixNano(),
+	})
 	if err != nil {
 		writeErr(a.conn, fmt.Sprintf("could not forward your message. try again: %v", err))
 	}

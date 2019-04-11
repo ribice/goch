@@ -32,7 +32,7 @@ type Chat struct {
 // Chat errors
 var (
 	errAlreadyRegistered = errors.New("chat: uid already registred in this chat")
-	errNotRegistered     = errors.New("chat: uid not registered")
+	errNotRegistered     = errors.New("chat: not a member of this channel")
 	errInvalidSecret     = errors.New("chat: invalid secret")
 )
 
@@ -73,10 +73,10 @@ func newSecret() string {
 
 // ListMembers returns list of members associated to a chat
 func (c *Chat) ListMembers() []*User {
-	var members []*User
-	if len(members) < 1 {
+	if len(c.Members) < 1 {
 		return nil
 	}
+	var members []*User
 	for _, u := range c.Members {
 		u.Secret = ""
 		members = append(members, u)
