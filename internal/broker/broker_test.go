@@ -343,12 +343,37 @@ func TestSubscribeNew(t *testing.T) {
 }
 
 func TestSend(t *testing.T) {
+	cases := []struct {
+		name    string
+		msg     *goch.Message
+		q       queue
+		wantErr bool
+	}{{
+		name: "Fail on sending message",
+		msg:  &goch.Message{FromUID: "123"},
+		q: queue{
+			SendFunc: func(string, []byte) error {
+				return errors.New("failed sending message")
+			},
+		},
+		wantErr: true,
+	}}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			b := broker.New(&tc.q, nil, nil)
+			err := b.Send("chatID", tc.msg)
+			if tc.wantErr != (err != nil) {
+				t.Errorf("Expected err (%v), received %v", tc.wantErr, err)
+			}
 
+		})
+	}
 }
 
 type queue struct {
 	SubscribeSeqFunc       func(string, string, uint64, func(uint64, []byte)) (io.Closer, error)
 	SubscribeTimestampFunc func(string, string, time.Time, func(uint64, []byte)) (io.Closer, error)
+	SendFunc               func(string, []byte) error
 }
 
 func (q *queue) SubscribeSeq(id string, nick string, start uint64, f func(uint64, []byte)) (io.Closer, error) {
@@ -359,8 +384,8 @@ func (q *queue) SubscribeTimestamp(id string, nick string, t time.Time, f func(u
 	return q.SubscribeTimestampFunc(id, nick, t, f)
 }
 
-func (q *queue) Send(string, []byte) error {
-	panic("not implemented")
+func (q *queue) Send(s string, b []byte) error {
+	return q.SendFunc(s, b)
 }
 
 type cl struct{}
