@@ -9,6 +9,9 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/ribice/msv/middleware/httplog"
+	"github.com/ribice/msv/middleware/recovery"
+
 	"github.com/gorilla/mux"
 )
 
@@ -18,10 +21,12 @@ type Server struct {
 	*http.Server
 }
 
-// New instantiates new http server
-func New(port int) (*Server, *mux.Router) {
+// New instantiates new http server with logging and recover middleware
+func New(port int, prefix string) (*Server, *mux.Router) {
 	m := mux.NewRouter()
-	// m.Use(middleware.Recoverer, middleware.Logger, middleware.RequestID, middleware.RealIP)
+	rmw := recovery.New(prefix)
+	lmw := httplog.New(prefix, "/")
+	m.Use(rmw.MWFunc, lmw.MWFunc)
 
 	srv := &Server{m: m, Server: &http.Server{
 		Addr:    fmt.Sprintf(":%v", port),
@@ -34,9 +39,7 @@ func New(port int) (*Server, *mux.Router) {
 func (s *Server) Start() error {
 	go func() {
 		log.Printf("starting server on port%v", s.Addr)
-		if err := s.ListenAndServe(); err != nil {
-			log.Printf("error starting server: %s\n", err)
-		}
+		s.ListenAndServe()
 	}()
 	// Setting up signal capturing
 	stop := make(chan os.Signal, 1)
@@ -45,7 +48,8 @@ func (s *Server) Start() error {
 	// Waiting for SIGINT (pkill -2)
 	<-stop
 
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	if err := s.Shutdown(ctx); err != nil {
 		return fmt.Errorf("error stopping server: %s", err)
 	}
@@ -58,9 +62,7 @@ func (s *Server) Start() error {
 func (s *Server) StartTLS(cf, kf string) error {
 	go func() {
 		log.Printf("starting server on port%v", s.Addr)
-		if err := s.ListenAndServeTLS(cf, kf); err != nil {
-			log.Printf("error starting server: %s\n", err)
-		}
+		s.ListenAndServeTLS(cf, kf)
 	}()
 	// Setting up signal capturing
 	stop := make(chan os.Signal, 1)
@@ -69,7 +71,9 @@ func (s *Server) StartTLS(cf, kf string) error {
 	// Waiting for SIGINT (pkill -2)
 	<-stop
 
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	if err := s.Shutdown(ctx); err != nil {
 		return fmt.Errorf("error stopping server: %s", err)
 	}

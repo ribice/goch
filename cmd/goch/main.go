@@ -4,6 +4,8 @@ import (
 	"flag"
 	"log"
 
+	"github.com/ribice/msv/middleware/bauth"
+
 	"github.com/ribice/goch/internal/chat"
 
 	"github.com/ribice/goch/internal/agent"
@@ -16,7 +18,6 @@ import (
 	"github.com/ribice/goch/pkg/nats"
 	"github.com/ribice/goch/pkg/redis"
 	"github.com/ribice/msv"
-	authmw "github.com/ribice/msv/middleware/auth"
 )
 
 func main() {
@@ -30,10 +31,10 @@ func main() {
 	checkErr(err)
 
 	srv, mux := msv.New(cfg.Server.Port)
-	aMW := authmw.New(cfg.Admin.Username, cfg.Admin.Password)
+	aMW := bauth.New(cfg.Admin.Username, cfg.Admin.Password)
 
 	agent.NewAPI(mux, broker.New(mq, store, ingest.New(mq, store)), store, cfg)
-	chat.New(mux, store, cfg, aMW.WithBasic)
+	chat.New(mux, store, cfg, aMW.MWFunc)
 
 	srv.Start()
 }
