@@ -1,0 +1,12 @@
+language: go
+sudo: required
+go:
+  - tip
+before_install:
+  - go get -t -v ./...
+
+script:
+  - ./test.sh
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

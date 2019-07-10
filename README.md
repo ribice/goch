@@ -1,4 +1,8 @@
 # goch
+[![Build Status](https://travis-ci.org/ribice/goch.svg?branch=master)](https://travis-ci.org/ribice/goch)
+[![codecov](https://codecov.io/gh/ribice/goch/branch/master/graph/badge.svg)](https://codecov.io/gh/ribice/goch)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ribice/goch)](https://goreportcard.com/report/github.com/ribice/goch)
+[![Maintainability](https://api.codeclimate.com/v1/badges/c3cb09dbc0bc43186464/maintainability)](https://codeclimate.com/github/ribice/goch/maintainability)
 
 goch is a self-hosted live-chat server written in Go.
 
