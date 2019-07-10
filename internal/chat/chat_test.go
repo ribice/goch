@@ -455,7 +455,7 @@ func TestListMembers(t *testing.T) {
 					t.Error(err)
 				}
 
-				if reflect.DeepEqual(users, tc.want) {
+				if !reflect.DeepEqual(users, tc.want) {
 					t.Errorf("expected users: %v but got: %v", tc.want, users)
 				}
 			}
@@ -518,7 +518,7 @@ func TestListChannels(t *testing.T) {
 					t.Error(err)
 				}
 
-				if len(chans) != len(tc.want) {
+				if !reflect.DeepEqual(tc.want, chans) {
 					t.Errorf("expected chans: %v but got: %v", tc.want, chans)
 				}
 			}
