@@ -1,7 +1,7 @@
 language: go
 sudo: required
 go:
-  - tip
+  - "1.12"
 before_install:
   - go get -t -v ./...
 
