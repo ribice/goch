@@ -110,7 +110,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f84cfcbdb83e909e2d38ce47453594a5a45fae97ee59072f9390a766ba164414"
+  digest = "1:4dbc6d70c3ea598ef4b56bee747d21b6a905841b1435047a17c325afb206982d"
   name = "github.com/ribice/msv"
   packages = [
     ".",
@@ -121,7 +121,7 @@
     "render",
   ]
   pruneopts = "NUT"
-  revision = "2d6e4cddf3a59851e9b34e637bde1ef47138c6bb"
+  revision = "c4833334e2401ae9622ef1cc33437af221204eaa"
 
 [[projects]]
   digest = "1:0975c74a2cd70df6c2ae353c6283a25ce759dda7e1e706e5c07458baf3faca22"

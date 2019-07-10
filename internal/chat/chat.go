@@ -32,6 +32,7 @@ func New(m *mux.Router, store Store, l Limiter, authMW mux.MiddlewareFunc) *API 
 	}
 
 	exceeds = l.Exceeds
+	exceedsAny = l.ExceedsAny
 	alfaRgx = regexp.MustCompile("^[a-zA-Z0-9_]*$")
 	mailRgx = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
@@ -43,7 +44,7 @@ func New(m *mux.Router, store Store, l Limiter, authMW mux.MiddlewareFunc) *API 
 	ar.Use(authMW)
 	ar.HandleFunc("", api.listChannels).Methods("GET")
 	ar.HandleFunc("", api.createChannel).Methods("POST")
-	ar.HandleFunc("/{name}/user/{uid}", api.unreadCount).Methods("GET")
+	ar.HandleFunc("/{chanName}/user/{uid}", api.unreadCount).Methods("GET")
 	return &api
 }
 
@@ -82,7 +83,7 @@ func (api *API) createChannel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("could not create channel: %v", err), 500)
 		return
 	}
-	render.JSON(w, r, ch.Secret)
+	render.JSON(w, ch.Secret)
 }
 
 type registerReq struct {
@@ -108,7 +109,6 @@ func (r *registerReq) Bind() error {
 	if !mailRgx.MatchString(r.Email) {
 		return errors.New("invalid email address")
 	}
-
 	return exceedsAny(map[string]goch.Limit{
 		r.UID:           goch.UIDLimit,
 		r.DisplayName:   goch.DisplayNameLimit,
@@ -147,7 +147,7 @@ func (api *API) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	render.JSON(w, r, registerResp{secret})
+	render.JSON(w, registerResp{secret})
 
 }
 
@@ -157,24 +157,24 @@ type unreadCountResp struct {
 
 func (api *API) unreadCount(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	uid, chanName := vars["uid"], vars["name"]
+	uid, chanName := vars["uid"], vars["chanName"]
 	if err := exceedsAny(map[string]goch.Limit{
-		chanName: goch.UIDLimit,
-		uid:      goch.ChanLimit,
+		chanName: goch.ChanLimit,
+		uid:      goch.UIDLimit,
 	}); err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
 
 	uc := api.store.GetUnreadCount(uid, chanName)
-	render.JSON(w, r, &unreadCountResp{uc})
+	render.JSON(w, &unreadCountResp{uc})
 
 }
 
 func (api *API) listMembers(w http.ResponseWriter, r *http.Request) {
 
-	chanName := r.URL.Query().Get("name")
-	secret := mux.Vars(r)["secret"]
+	chanName := mux.Vars(r)["name"]
+	secret := r.URL.Query().Get("secret")
 
 	if err := exceedsAny(map[string]goch.Limit{
 		chanName: goch.ChanLimit,
@@ -191,11 +191,11 @@ func (api *API) listMembers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if ch.Secret != secret {
-		http.Error(w, fmt.Sprintf("invalid secret or unexisting channel: %v", err), 500)
+		http.Error(w, "invalid secret", 500)
 		return
 	}
 
-	render.JSON(w, r, ch.ListMembers())
+	render.JSON(w, ch.ListMembers())
 }
 
 func (api *API) listChannels(w http.ResponseWriter, r *http.Request) {
@@ -204,6 +204,6 @@ func (api *API) listChannels(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("unable to fetch channels: %v", err), 500)
 		return
 	}
-	render.JSON(w, r, chans)
+	render.JSON(w, chans)
 
 }

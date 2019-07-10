@@ -20,7 +20,7 @@ func JSON(w http.ResponseWriter, r *http.Request, v Binder) error {
 		return err
 	}
 	if err := v.Bind(); err != nil {
-		http.Error(w, fmt.Sprintf("error binding data: %v", err), 400)
+		http.Error(w, fmt.Sprintf("error binding request: %v", err), 400)
 		return err
 	}
 	return nil

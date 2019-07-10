@@ -31,7 +31,7 @@ type Chat struct {
 
 // Chat errors
 var (
-	errAlreadyRegistered = errors.New("chat: uid already registred in this chat")
+	errAlreadyRegistered = errors.New("chat: uid already registered in this chat")
 	errNotRegistered     = errors.New("chat: not a member of this channel")
 	errInvalidSecret     = errors.New("chat: invalid secret")
 )
