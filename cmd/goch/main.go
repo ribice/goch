@@ -30,8 +30,8 @@ func main() {
 	store, err := redis.New(cfg.Redis.Address, cfg.Redis.Password, cfg.Redis.Port)
 	checkErr(err)
 
-	srv, mux := msv.New(cfg.Server.Port, "goch")
-	aMW := bauth.New(cfg.Admin.Username, cfg.Admin.Password)
+	srv, mux := msv.New("goch")
+	aMW := bauth.New(cfg.Admin.Username, cfg.Admin.Password, "GOCH")
 
 	agent.NewAPI(mux, broker.New(mq, store, ingest.New(mq, store)), store, cfg)
 	chat.New(mux, store, cfg, aMW.MWFunc)

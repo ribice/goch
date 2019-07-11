@@ -16,7 +16,7 @@ Goch is a fork of [Gossip](https://github.com/aneshas/gossip), with many added f
 
 ## Getting started
 
-To run goch locally, you need `docker`, `docker-compose` and `go` installed and set on your path. After downloading/cloning the project, run `./up` which compiles the binary and runs docker-compose with goch, NATS Streaming and Redis. If there were no errors, goch should be running on localhost (port 80).
+To run goch locally, you need `docker`, `docker-compose` and `go` installed and set on your path. After downloading/cloning the project, run `./up` which compiles the binary and runs docker-compose with goch, NATS Streaming and Redis. If there were no errors, goch should be running on localhost (port 8080).
 
 ## License
 

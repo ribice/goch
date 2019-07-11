@@ -8,7 +8,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/ribice/goch"
-	"github.com/ribice/msv/bind"
 	"github.com/ribice/msv/render"
 )
 
@@ -75,7 +74,7 @@ func (cr *createReq) Bind() error {
 
 func (api *API) createChannel(w http.ResponseWriter, r *http.Request) {
 	var req createReq
-	if err := bind.JSON(w, r, &req); err != nil {
+	if err := render.Bind(w, r, &req); err != nil {
 		return
 	}
 	ch := goch.NewChannel(req.Name, req.IsPrivate)
@@ -120,7 +119,7 @@ func (r *registerReq) Bind() error {
 
 func (api *API) register(w http.ResponseWriter, r *http.Request) {
 	var req registerReq
-	if err := bind.JSON(w, r, &req); err != nil {
+	if err := render.Bind(w, r, &req); err != nil {
 		return
 	}
 	ch, err := api.store.Get(req.Channel)

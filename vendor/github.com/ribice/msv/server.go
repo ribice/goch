@@ -22,14 +22,19 @@ type Server struct {
 }
 
 // New instantiates new http server with logging and recover middleware
-func New(port int, prefix string) (*Server, *mux.Router) {
+func New(prefix string) (*Server, *mux.Router) {
 	m := mux.NewRouter()
 	rmw := recovery.New(prefix)
 	lmw := httplog.New(prefix, "/")
 	m.Use(rmw.MWFunc, lmw.MWFunc)
 
+	port := "8080"
+	if p, ok := os.LookupEnv("PORT"); ok {
+		port = p
+	}
+
 	srv := &Server{m: m, Server: &http.Server{
-		Addr:    fmt.Sprintf(":%v", port),
+		Addr:    fmt.Sprintf(":%s", port),
 		Handler: m,
 	}}
 	return srv, srv.m

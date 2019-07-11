@@ -93,6 +93,5 @@ func newCustomResponseWriter(w http.ResponseWriter) *customResponseWriter {
 	// When WriteHeader is not called, it's safe to assume the status will be 200.
 	return &customResponseWriter{
 		ResponseWriter: w,
-		status:         200,
 	}
 }
