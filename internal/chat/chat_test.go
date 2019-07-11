@@ -413,9 +413,6 @@ func TestListMembers(t *testing.T) {
 					return &goch.Chat{
 						Secret: "12345678901234567890", Members: map[string]*goch.User{
 							"joe": {UID: "joe"},
-							"foo": {UID: "foo"},
-							"bar": {UID: "bar"},
-							"baz": {UID: "baz"},
 						},
 					}, nil
 				},
@@ -423,7 +420,7 @@ func TestListMembers(t *testing.T) {
 			name:     "test success",
 			chanName: "1234567890",
 			secret:   "?secret=12345678901234567890",
-			want:     []goch.User{{UID: "joe"}, {UID: "foo"}, {UID: "bar"}, {UID: "baz"}},
+			want:     []goch.User{{UID: "joe"}},
 			wantCode: http.StatusOK,
 		},
 	}
