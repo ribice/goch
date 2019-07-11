@@ -102,6 +102,7 @@ func (a *Agent) HandleConn(conn *websocket.Conn, req *initConReq) {
 	mc := make(chan *goch.Message)
 	{
 		var close func()
+		var err error
 
 		if req.LastSeq != nil {
 			close, err = a.mb.Subscribe(req.Channel, user.UID, *req.LastSeq, mc)
