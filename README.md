@@ -44,4 +44,4 @@ goch is licensed under the MIT license. Check the [LICENSE](LICENSE) file for de
 
 ## Author
 
-[Emir Ribic](https://ribice.ba)
+[Emir Ribic](https://dev.ribic.ba)
